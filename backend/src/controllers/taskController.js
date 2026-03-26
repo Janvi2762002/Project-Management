@@ -1,34 +1,84 @@
-const Task = require("../models/task");
+// const Task = require("../models/task");
+import Task from "../models/task.js";
+import Project from "../models/project.js";
 
+export const getAllTasks = async (req, res) => {
+  try {
+    const userId = req.user.userId;
 
-exports.getAllTasks = async (req, res) => {
-  const tasks = await Task.find({});
-  res.json(tasks);
+    // 1. Get user's projects
+    const projects = await Project.find({ owner: userId });
+
+    const projectIds = projects.map(p => p._id);
+
+    // 2. Get tasks only from those projects
+    const tasks = await Task.find({
+      project: { $in: projectIds }
+    });
+
+    res.json(tasks);
+
+  } catch (err) {
+    console.error("REGISTER ERROR:", err); // ✅ add this
+    res.status(500).json({ message: err.message });
+  }
 };
 
-exports.getTasks = async (req, res) => {
+export const getTasks = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const role = req.user.role;
+    const { projectId } = req.params;
 
-  const tasks = await Task.find({
-    project: req.params.projectId
-  });
+    let tasks;
 
-  res.json(tasks);
+    if (role === "admin") {
+      // Admin sees all tasks of project
+      tasks = await Task.find({ project: projectId }).populate("assignee", "name");
+    } else {
+      // User sees only assigned tasks
+      tasks = await Task.find({
+        project: projectId,
+        assignee: userId
+      });
+    }
+
+    res.json(tasks);
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
-exports.createTask = async (req, res) => {
+export const createTask = async (req, res) => {
+  try {
+    console.log("BODY:", req.body);
+    console.log("PARAMS:", req.params);
+    console.log("USER:", req.user);
 
-  const task = new Task({
-    title: req.body.title,
-    description: req.body.description,
-    project: req.params.projectId
-  });
+    const { projectId } = req.params;
+    const userId = req.user?.userId;
 
-  await task.save();
+    const task = new Task({
+      title: req.body.title,
+      priority: req.body.priority,
+      due: req.body.due,
+      assignee: req.body.assignee || null,
+      project: projectId,
+      owner: userId
+    });
 
-  res.json(task);
+    await task.save();
+
+    res.json(task);
+
+  } catch (error) {
+    console.error("CREATE TASK ERROR:", error);
+    res.status(500).json({ message: error.message });
+  }
 };
 
-exports.deleteTask = async (req, res) => {
+export const deleteTask = async (req, res) => {
 
   const task = await Task.findByIdAndDelete(req.params.id);
 
@@ -39,7 +89,7 @@ exports.deleteTask = async (req, res) => {
   res.json({ message: "Task deleted" });
 };
 
-exports.updateTaskStatus = async (req, res) => {
+export const updateTaskStatus = async (req, res) => {
 
   const task = await Task.findByIdAndUpdate(
     req.params.id,
@@ -54,7 +104,7 @@ exports.updateTaskStatus = async (req, res) => {
   res.json(task);
 };
 
-exports.updateTask = async (req, res) => {
+export const updateTask = async (req, res) => {
   try {
     const { title, description, priority, due, assignee, status } = req.body
 

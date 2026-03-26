@@ -1,12 +1,19 @@
 
 const API_URL = "http://localhost:5000";
 
-type LoginData = {
+type loginData = {
   email: string;
   password: string;
 };
 
-export const loginUser = async (data: LoginData) => {
+type registerData = {
+  name: string;
+  email: string;
+  password: string;
+  role:string;
+};
+
+export const loginUser = async (data: loginData) => {
   const res = await fetch(`${API_URL}/users/login`, {
     method: "POST",
     headers: {
@@ -17,6 +24,19 @@ export const loginUser = async (data: LoginData) => {
 
   return res.json();
 };
+
+export const registerUser = async (data: registerData) => {
+  const res = await fetch(`${API_URL}/users/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
+
+  return res.json();
+};
+
 export const getProjects = async () => {
   const token = localStorage.getItem("token");
 
@@ -66,6 +86,18 @@ export const getAllTasks = async () => {
   const token = localStorage.getItem("token");
 
   const res = await fetch(`${API_URL}/tasks`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  return res.json();
+};
+
+export const getUsers= async () => {
+  const token = localStorage.getItem("token");
+
+  const res = await fetch(`${API_URL}/users`, {
     headers: {
       Authorization: `Bearer ${token}`
     }

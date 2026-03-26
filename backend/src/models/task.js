@@ -16,6 +16,11 @@ const taskSchema = new mongoose.Schema(
       enum: ["todo", "inprogress", "done"],
       default: "todo",
     },
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     priority: {
       type: String,
       enum: ["high", "medium", "low"],
@@ -26,8 +31,9 @@ const taskSchema = new mongoose.Schema(
       default: null,
     },
     assignee: {
-      type: String,
-      default: null,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
     project: {
       type: mongoose.Schema.Types.ObjectId,

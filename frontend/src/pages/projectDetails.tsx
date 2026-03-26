@@ -8,6 +8,7 @@ import {
   Draggable,
   type DropResult,
 } from "@hello-pangea/dnd"
+import { getUsers } from "../api"
 
 type Priority = "high" | "medium" | "low"
 
@@ -19,6 +20,11 @@ type Task = {
   priority: Priority
   due?: string
   assignee?: string
+}
+
+type User = {
+  _id: string
+  name: string
 }
 
 const COLUMNS: { id: Task["status"]; label: string; cls: string }[] = [
@@ -71,13 +77,14 @@ function ProjectDetails() {
   const [due, setDue]             = useState("")
   const [priority, setPriority]   = useState<Priority>("medium")
   const [assignee, setAssignee]   = useState("")
+  const [users, setUsers]   = useState<User[]>([])
   const [search, setSearch]       = useState("")
   const [filterPriority, setFilterPriority] = useState("")
   const [filterAssignee, setFilterAssignee] = useState("")
   const [confirmTask, setConfirmTask] = useState<Task | null>(null)
   const { toasts, addToast }      = useToasts()
 
-  useEffect(() => { fetchTasks() }, [])
+  useEffect(() => { fetchTasks(); fetchUsers() }, [])
 
   const fetchTasks = async () => {
     const token = localStorage.getItem("token")
@@ -85,6 +92,11 @@ function ProjectDetails() {
       headers: { Authorization: `Bearer ${token}` },
     })
     setTasks(await res.json())
+  }
+
+  const fetchUsers = async () => {
+    const data = await getUsers()
+    setUsers(data)
   }
 
   const createTask = async () => {
@@ -244,13 +256,21 @@ function ProjectDetails() {
               <path d="M2 4l4 4 4-4" />
             </svg>
           </div>
-          <input
-            type="text"
-            placeholder="Assignee"
+          <select
             value={assignee}
             onChange={e => setAssignee(e.target.value)}
-            style={{ width: 110, flexShrink: 0 }}
-          />
+          >
+            <option value="">Assign to</option>
+            {users.length === 0 ? (
+              <option disabled>Loading...</option>
+            ) : (
+              users.map(user => (
+                <option key={user._id} value={user._id}>
+                  {user.name}
+                </option>
+              ))
+            )}
+          </select>
           <button
             className="task-add-btn"
             onClick={createTask}

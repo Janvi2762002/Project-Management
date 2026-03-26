@@ -12,9 +12,13 @@ function Projects() {
   const [description, setDescription] = useState("")
   const [showDrawer, setShowDrawer] = useState(false)
 
+  const [role, setRole] = useState<string | null>(null);
+
   useEffect(() => {
-    fetchProjects()
-  }, [])
+    const userRole = localStorage.getItem("role");
+    setRole(userRole);
+    fetchProjects();
+  }, []);
 
   const fetchProjects = async () => {
     const data = await getProjects()
@@ -57,9 +61,11 @@ function Projects() {
                 : `${projects.length} project${projects.length !== 1 ? "s" : ""}`}
             </span>
           </div>
-          <button className="new-project-btn" onClick={() => setShowDrawer(true)}>
-            New Project
-          </button>
+          {(role == "admin") &&
+            <button className="new-project-btn" onClick={() => setShowDrawer(true)}>
+              New Project
+            </button>
+          }
         </div>
 
         {/* ── Grid ── */}

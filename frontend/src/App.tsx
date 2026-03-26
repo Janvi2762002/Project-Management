@@ -1,17 +1,18 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Login from "./pages/login";
-// import Users from "./pages/users";
-import Projects from "./pages/projects"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Projects from "./pages/projects";
 import ProtectedRoute from "./utils/ProtectedRoutes";
 import ProjectDetails from "./pages/projectDetails";
 import Dashboard from "./pages/dashboard";
+import AuthPage from "./pages/authPage";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        {/* Public */}
+        <Route path="/auth" element={<AuthPage />} />
 
+        {/* Protected */}
         <Route
           path="/projects"
           element={
@@ -20,16 +21,27 @@ function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/projects/:id"
-          element={<ProjectDetails />}
+          element={
+            <ProtectedRoute>
+              <ProjectDetails />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/dashboard"
-          element={<Dashboard />}
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
         />
-        
+
+        {/* Default Redirect */}
+        <Route path="*" element={<Navigate to="/auth" />} />
       </Routes>
     </BrowserRouter>
   );

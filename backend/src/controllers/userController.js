@@ -1,10 +1,13 @@
-const User = require("../models/User");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+// const User = require("../models/User");
+// const bcrypt = require("bcryptjs");
+// const jwt = require("jsonwebtoken");
 
+  import User from "../models/user.js";
+  import bcrypt from "bcryptjs";
+  import jwt from "jsonwebtoken";
 
 // 🔹 GET ALL USERS (Protected)
-exports.getUsers = async (req, res) => {
+export const getUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password"); // hide password
     res.status(200).json(users);
@@ -15,7 +18,7 @@ exports.getUsers = async (req, res) => {
 
 
 // 🔹 REGISTER USER
-exports.createUser = async (req, res) => {
+export const createUser = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
@@ -54,7 +57,7 @@ exports.createUser = async (req, res) => {
 
 
 // 🔹 LOGIN USER
-exports.loginUser = async (req, res) => {
+export const loginUser = async (req, res) => {
   try {
 
     console.log("BODY:", req.body);
@@ -87,8 +90,42 @@ exports.loginUser = async (req, res) => {
 };
 
 
+// Register User
+
+export const registerUser = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({
+      name,
+      email,
+      password: hashedPassword,
+      role
+    });
+
+    await newUser.save();
+
+    res.status(201).json({
+      message: "User created successfully",
+      user: newUser
+    });
+
+  } catch (error) {
+  console.error("REGISTER ERROR:", error); // ✅ add this
+  res.status(500).json({ message: error.message });
+}
+};
 // 🔹 DELETE USER
-exports.deleteUser = async (req, res) => {
+export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -107,7 +144,7 @@ exports.deleteUser = async (req, res) => {
 
 
 // 🔹 UPDATE USER
-exports.updateUser = async (req, res) => {
+export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
 

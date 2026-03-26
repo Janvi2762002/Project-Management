@@ -2,14 +2,16 @@
   "name": "frontend",
   "private": true,
   "version": "0.0.0",
-  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@hello-pangea/dnd": "^18.0.1",
+    "@mui/material": "^7.3.9",
     "chart.js": "^4.5.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

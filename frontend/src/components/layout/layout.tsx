@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import Sidebar from "./sidebar"
-import Topbar from "./topbar"
+// import Topbar from "./topbar"
 import "../../styles/layout.css"
 
 type Props = {
@@ -15,7 +15,7 @@ function Layout({ children }: Props) {
 
       <div className="main">
 
-        <Topbar />
+        {/* <Topbar /> */}
 
         <div className="content">
           {children}

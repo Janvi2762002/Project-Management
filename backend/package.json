@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "server.js",
- "scripts": {
-  "dev": "npx nodemon server.js",
-  "start": "node server.js"
-},
+  "scripts": {
+    "dev": "npx nodemon server.js",
+    "start": "node --max-old-space-size=4096 index.js"
+  },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
