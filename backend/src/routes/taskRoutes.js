@@ -1,8 +1,8 @@
-const express = require("express");
-const router = express.Router();
+import express from "express";
+import * as taskController from "../controllers/taskController.js";
+import auth from "../middleware/auth.js";
 
-const taskController = require("../controllers/taskController");
-const auth = require("../middleware/auth");
+const router = express.Router();
 
 // "/" must be above "/:projectId" — Express is greedy, "/:projectId" would catch "/" first
 router.get("/", auth, taskController.getAllTasks);
@@ -14,4 +14,9 @@ router.delete("/:id", auth, taskController.deleteTask);
 router.put("/:id/status", auth, taskController.updateTaskStatus);
 router.put("/:id", auth, taskController.updateTask);
 
-module.exports = router;
+//comments
+router.post("/:id/comment", auth, taskController.addComment);
+router.put("/:id/comment/:commentId", auth, taskController.editComment);
+router.delete("/:id/comment/:commentId", auth, taskController.deleteComment);
+
+export default router;

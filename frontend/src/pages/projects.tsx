@@ -2,7 +2,6 @@ import { useEffect, useState } from "react"
 import { getProjects, createProject, deleteProject } from "../api"
 import type { Project } from "../types/project"
 import Layout from "../components/layout/layout"
-import "../styles/project.css"
 import { useNavigate } from "react-router-dom"
 
 function Projects() {

@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const taskSchema = new mongoose.Schema(
   {
@@ -40,8 +40,37 @@ const taskSchema = new mongoose.Schema(
       ref: "Project",
       required: true,
     },
+    comments: [
+      {
+        text: {
+          type: String,
+          required: true,
+        },
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    subtasks: [
+      {
+        title: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        completed: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
   },
   { timestamps: true }
 );
-
-module.exports = mongoose.model("Task", taskSchema);
+export default mongoose.model("Task", taskSchema);

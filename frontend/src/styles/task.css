@@ -607,3 +607,120 @@
 }
 
 .confirm-del-btn:hover { background: rgba(247, 90, 90, 0.22); }
+
+.comment-box {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: #f4f5f7;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+/* Input */
+.comment-box input {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 13px;
+  outline: none;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+.comment-box input:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+}
+
+/* Buttons */
+.comment-box button {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Add button */
+.comment-box button:first-of-type {
+  background-color: #4f46e5;
+  color: white;
+}
+
+.comment-box button:first-of-type:hover {
+  background-color: #4338ca;
+}
+
+/* Cancel button */
+.comment-box button:last-of-type {
+  background-color: transparent;
+  color: #555;
+}
+
+.comment-box button:last-of-type:hover {
+  background-color: #e5e7eb;
+}
+
+/* Thread container */
+.comment-thread {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Each comment row */
+.comment-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+/* Avatar */
+.comment-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #6366f1;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Content box */
+.comment-content {
+  flex: 1;
+}
+
+/* Header (name + time) */
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.comment-user {
+  font-weight: 600;
+  color: #111;
+}
+
+.comment-time {
+  color: #888;
+  font-size: 11px;
+}
+
+/* Message */
+.comment-text {
+  font-size: 13px;
+  color: #333;
+  line-height: 1.4;
+} 

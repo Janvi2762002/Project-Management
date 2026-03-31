@@ -1,21 +1,65 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@import "tailwindcss";
+
+@theme {
+  /* ── Colors ── */
+  --color-primary-50: #f5f7ff;
+  --color-primary-100: #ebf0fe;
+  --color-primary-200: #ced9fd;
+  --color-primary-300: #a1b6fb;
+  --color-primary-400: #7588f8;
+  --color-primary-500: #4f5ef1;
+  --color-primary-600: #3e41e5;
+  --color-primary-700: #3233cc;
+  --color-primary-800: #2c2ca7;
+  --color-primary-900: #292985;
+
+  /* ── Animations ── */
+  --animate-fade-in: fadeIn 0.2s ease-out;
+  --animate-slide-up: slideUp 0.3s ease-out;
 }
 
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-body {
-  min-height: 100vh;
-  background: #f5f6fa;
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
-#root {
-  width: 100%;
-  height: 100%;
+.anim-fade-in { animation: fadeIn 0.2s ease-out; }
+.anim-slide-up { animation: slideUp 0.3s ease-out; }
+
+/* Components & Pages */
+@import "./styles/layout.css";
+@import "./styles/auth.css";
+@import "./styles/dashboard.css";
+@import "./styles/project.css";
+@import "./styles/task.css";
+@import "./styles/comments.css";
+@import "./styles/chat.css";
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  body {
+    min-height: 100vh;
+    background: #f8fafc;
+  }
+
+  #root {
+    width: 100%;
+    height: 100%;
+  }
 }

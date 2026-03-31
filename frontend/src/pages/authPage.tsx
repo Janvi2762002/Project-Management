@@ -1,5 +1,5 @@
 import { useState } from "react"
-import "../styles/auth.css"
+
 import Login from "./login"
 import Register from "./register"
 

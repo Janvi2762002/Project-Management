@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { getProjects, getAllTasks } from "../api"
 import type { Project } from "../types/project"
 import Layout from "../components/layout/layout"
-import "../styles/dashboard.css"
+
 import {
   Chart,
   BarController,
@@ -24,7 +24,9 @@ interface Task {
   title: string
   status: "todo" | "inprogress" | "done"
   priority: "high" | "medium" | "low"
-  project: string
+  project: {
+    _id: string
+  }
   due?: string
   createdAt?: string
 }
@@ -59,14 +61,14 @@ function last7Days() {
 
 function CompletionChart({ tasks }: { tasks: Task[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const chartRef  = useRef<Chart | null>(null)
+  const chartRef = useRef<Chart | null>(null)
 
   useEffect(() => {
     if (!canvasRef.current) return
 
     // Build per-day completed + created counts for last 7 days
     const completed = Array(7).fill(0)
-    const created   = Array(7).fill(0)
+    const created = Array(7).fill(0)
 
     tasks.forEach(t => {
       const dateStr = t.status === "done" ? t.due : t.createdAt
@@ -163,8 +165,8 @@ function CompletionChart({ tasks }: { tasks: Task[] }) {
 function Dashboard() {
   const navigate = useNavigate()
   const [projects, setProjects] = useState<Project[]>([])
-  const [tasks, setTasks]       = useState<Task[]>([])
-  const [loading, setLoading]   = useState(true)
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const load = async () => {
@@ -188,9 +190,9 @@ function Dashboard() {
 
   // ── Derived stats ────────────────────────────────────────────────────────────
 
-  const total         = tasks.length
-  const completed     = tasks.filter(t => t.status === "done").length
-  const overdueTasks  = tasks.filter(isOverdue)
+  const total = tasks.length
+  const completed = tasks.filter(t => t.status === "done").length
+  const overdueTasks = tasks.filter(isOverdue)
   const completionPct = total ? Math.round((completed / total) * 100) : 0
 
   const recentProjects = [...projects]
@@ -202,7 +204,7 @@ function Dashboard() {
   const byStatus = (s: Task["status"]) => tasks.filter(t => t.status === s).length
   const byPriority = (p: Task["priority"]) => tasks.filter(t => t.priority === p).length
 
-  const maxStatus   = Math.max(byStatus("todo"), byStatus("inprogress"), byStatus("done"), 1)
+  const maxStatus = Math.max(byStatus("todo"), byStatus("inprogress"), byStatus("done"), 1)
   const maxPriority = Math.max(byPriority("high"), byPriority("medium"), byPriority("low"), 1)
 
   return (
@@ -230,8 +232,8 @@ function Dashboard() {
               <span className="stat-label">Projects</span>
               <span className="stat-icon-wrap">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <rect x="2" y="4" width="12" height="9" rx="1.5"/>
-                  <path d="M2 7h12M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/>
+                  <rect x="2" y="4" width="12" height="9" rx="1.5" />
+                  <path d="M2 7h12M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1" />
                 </svg>
               </span>
             </div>
@@ -244,8 +246,8 @@ function Dashboard() {
               <span className="stat-label">Total tasks</span>
               <span className="stat-icon-wrap">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M3 8l3 3 7-7"/>
-                  <rect x="1" y="1" width="14" height="14" rx="2"/>
+                  <path d="M3 8l3 3 7-7" />
+                  <rect x="1" y="1" width="14" height="14" rx="2" />
                 </svg>
               </span>
             </div>
@@ -258,8 +260,8 @@ function Dashboard() {
               <span className="stat-label">Completed</span>
               <span className="stat-icon-wrap">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="8" cy="8" r="6"/>
-                  <path d="M5 8l2.5 2.5L11 5.5"/>
+                  <circle cx="8" cy="8" r="6" />
+                  <path d="M5 8l2.5 2.5L11 5.5" />
                 </svg>
               </span>
             </div>
@@ -272,8 +274,8 @@ function Dashboard() {
               <span className="stat-label">Overdue</span>
               <span className="stat-icon-wrap">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="8" cy="8" r="6"/>
-                  <path d="M8 5v3.5l2 2"/>
+                  <circle cx="8" cy="8" r="6" />
+                  <path d="M8 5v3.5l2 2" />
                 </svg>
               </span>
             </div>
@@ -303,8 +305,8 @@ function Dashboard() {
               </div>
             ) : (
               recentProjects.map((project, i) => {
-                const pt       = tasks.filter(t => t.project === project._id)
-                const done     = pt.filter(t => t.status === "done").length
+                const pt = tasks.filter(t => t.project?._id?.toString() === project._id.toString());
+                const done = pt.filter(t => t.status === "done").length
                 const progress = pt.length ? Math.round((done / pt.length) * 100) : 0
 
                 return (
@@ -346,7 +348,7 @@ function Dashboard() {
               <div className="status-rows">
                 {(["todo", "inprogress", "done"] as Task["status"][]).map(s => {
                   const count = byStatus(s)
-                  const cls   = s === "inprogress" ? "sr-prog" : `sr-${s}`
+                  const cls = s === "inprogress" ? "sr-prog" : `sr-${s}`
                   const label = s === "todo" ? "To do" : s === "inprogress" ? "In progress" : "Done"
                   return (
                     <div key={s} className={`sr-item ${cls}`}>
@@ -369,8 +371,8 @@ function Dashboard() {
               </div>
               <div className="priority-rows">
                 {(["high", "medium", "low"] as Task["priority"][]).map(p => {
-                  const count   = byPriority(p)
-                  const barCls  = `pr-${p}-bar`
+                  const count = byPriority(p)
+                  const barCls = `pr-${p}-bar`
                   return (
                     <div key={p} className="pr-item">
                       <span className={`pr-badge pr-${p}`}>{p}</span>
@@ -396,7 +398,9 @@ function Dashboard() {
               ) : (
                 <div className="overdue-list">
                   {overdueTasks.slice(0, 5).map(t => {
-                    const proj = projects.find(p => p._id === t.project)
+                    const proj = projects.find(
+                      p => p._id?.toString() === t.project?.toString()
+                    );
                     return (
                       <div
                         key={t._id}

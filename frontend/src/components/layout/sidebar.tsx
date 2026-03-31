@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import "../../styles/layout.css"
+
 
 function Sidebar() {
   return (

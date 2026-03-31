@@ -1,25 +1,32 @@
 // const Task = require("../models/task");
 import Task from "../models/task.js";
-import Project from "../models/project.js";
+// import Project from "../models/project.js";
 
 export const getAllTasks = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const role = req.user.role;
 
-    // 1. Get user's projects
-    const projects = await Project.find({ owner: userId });
+    let tasks;
 
-    const projectIds = projects.map(p => p._id);
-
-    // 2. Get tasks only from those projects
-    const tasks = await Task.find({
-      project: { $in: projectIds }
-    });
+    if (role === "admin") {
+      // ✅ Admin → ALL tasks
+      tasks = await Task.find()
+        .populate("project", "name")
+        .populate("assignee", "name")
+        .populate("comments.user", "name");
+    } else {
+      // ✅ User → only assigned tasks
+      tasks = await Task.find({ assignee: userId })
+        .populate("project", "name")
+        .populate("assignee", "name")
+        .populate("comments.user", "name");
+    }
 
     res.json(tasks);
 
   } catch (err) {
-    console.error("REGISTER ERROR:", err); // ✅ add this
+    console.error("GET TASKS ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -33,14 +40,16 @@ export const getTasks = async (req, res) => {
     let tasks;
 
     if (role === "admin") {
-      // Admin sees all tasks of project
-      tasks = await Task.find({ project: projectId }).populate("assignee", "name");
+      // ✅ Admin sees ALL tasks of the project
+      tasks = await Task.find({
+        project: projectId
+      }).populate("assignee", "name").populate("comments.user", "name");
     } else {
-      // User sees only assigned tasks
+      // ✅ User sees ONLY assigned tasks
       tasks = await Task.find({
         project: projectId,
         assignee: userId
-      });
+      }).populate("assignee", "name").populate("comments.user", "name");
     }
 
     res.json(tasks);
@@ -52,28 +61,37 @@ export const getTasks = async (req, res) => {
 
 export const createTask = async (req, res) => {
   try {
+    const { projectId } = req.params;
+    const userId = req.user?.userId;
+
     console.log("BODY:", req.body);
     console.log("PARAMS:", req.params);
     console.log("USER:", req.user);
 
-    const { projectId } = req.params;
-    const userId = req.user?.userId;
+    if (!projectId) {
+      return res.status(400).json({ message: "Project ID is required" });
+    }
+
+    if (!req.body.title) {
+      return res.status(400).json({ message: "Title is required" });
+    }
 
     const task = new Task({
       title: req.body.title,
-      priority: req.body.priority,
-      due: req.body.due,
+      description: req.body.description || "",
+      priority: req.body.priority || "medium",
+      due: req.body.due || null,
       assignee: req.body.assignee || null,
       project: projectId,
       owner: userId
     });
 
-    await task.save();
+    const savedTask = await task.save();
 
-    res.json(task);
+    res.status(201).json(savedTask);
 
   } catch (error) {
-    console.error("CREATE TASK ERROR:", error);
+    console.error("CREATE TASK ERROR:", error.message);
     res.status(500).json({ message: error.message });
   }
 };
@@ -106,11 +124,11 @@ export const updateTaskStatus = async (req, res) => {
 
 export const updateTask = async (req, res) => {
   try {
-    const { title, description, priority, due, assignee, status } = req.body
+    const { title, description, priority, due, assignee, status, subtasks } = req.body
 
     const task = await Task.findByIdAndUpdate(
       req.params.id,
-      { title, description, priority, due, assignee, status },
+      { title, description, priority, due, assignee, status, subtasks },
       { new: true, runValidators: true }
     )
 
@@ -121,3 +139,101 @@ export const updateTask = async (req, res) => {
     res.status(500).json({ message: "Failed to update task" })
   }
 }
+
+//comments
+
+export const addComment = async (req, res) => {
+  try {
+    const { id } = req.params; // taskId
+    const userId = req.user.userId;
+    const role = req.user.role;
+    const { text } = req.body;
+
+    const task = await Task.findById(id);
+
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    // 🔒 Permission check
+    const isAdmin = role === "admin";
+    const isAssignee = task.assignee?.toString() === userId;
+
+    if (!isAdmin && !isAssignee) {
+      return res.status(403).json({ message: "Not allowed to comment" });
+    }
+
+    // ✅ Add comment
+    const comment = {
+      text,
+      user: userId,
+      createdAt: new Date()
+    };
+
+    task.comments = task.comments || [];
+    task.comments.push(comment);
+
+    await task.save();
+
+    const populatedTask = await Task.findById(id).populate("assignee", "name").populate("comments.user", "name");
+
+    res.json(populatedTask);
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const editComment = async (req, res) => {
+  try {
+    const { id, commentId } = req.params;
+    const { text } = req.body;
+    const userId = req.user.userId;
+
+    const task = await Task.findById(id);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    const comment = task.comments.id(commentId);
+    if (!comment) return res.status(404).json({ message: "Comment not found" });
+
+    // Permission: author or admin
+    if (comment.user.toString() !== userId && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Not authorized to edit this comment" });
+    }
+
+    comment.text = text;
+    comment.updatedAt = new Date();
+    await task.save();
+
+    const populatedTask = await Task.findById(id).populate("assignee", "name").populate("comments.user", "name");
+    res.json(populatedTask);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const deleteComment = async (req, res) => {
+  try {
+    const { id, commentId } = req.params;
+    const userId = req.user.userId;
+
+    const task = await Task.findById(id);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    const comment = task.comments.id(commentId);
+    if (!comment) return res.status(404).json({ message: "Comment not found" });
+
+    // Permission: author or admin
+    if (comment.user.toString() !== userId && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Not authorized to delete this comment" });
+    }
+
+    task.comments.pull(commentId);
+    await task.save();
+
+    const populatedTask = await Task.findById(id).populate("assignee", "name").populate("comments.user", "name");
+    res.json(populatedTask);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

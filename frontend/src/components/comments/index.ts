@@ -1,0 +1,5 @@
+export { default as CommentPopover } from "./CommentPopover"
+export { default as CommentList } from "./CommentList"
+export { default as CommentItem } from "./CommentItem"
+export { default as CommentInput } from "./CommentInput"
+export * from "./types"

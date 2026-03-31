@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react"
 import { useParams } from "react-router-dom"
 import Layout from "../components/layout/layout"
-import "../styles/task.css"
+import { CommentPopover } from "../components/comments"
+import ProjectChat from "../components/chat/ProjectChat"
+
 import {
   DragDropContext,
   Droppable,
@@ -9,6 +11,23 @@ import {
   type DropResult,
 } from "@hello-pangea/dnd"
 import { getUsers } from "../api"
+import { jwtDecode } from "jwt-decode";
+
+type DecodedToken = {
+  userId: string;
+  role: string;
+  name: string;
+};
+interface Comment {
+  _id?: string;
+  text: string;
+  user: {
+    _id?: string;
+    name: string
+  }
+  createdAt: string;
+}
+
 
 type Priority = "high" | "medium" | "low"
 
@@ -19,7 +38,11 @@ type Task = {
   status: "todo" | "inprogress" | "done"
   priority: Priority
   due?: string
-  assignee?: string
+  assignee: {
+    _id: string
+    name: string
+  }
+  comments: Comment[];
 }
 
 type User = {
@@ -28,9 +51,9 @@ type User = {
 }
 
 const COLUMNS: { id: Task["status"]; label: string; cls: string }[] = [
-  { id: "todo",       label: "To do",       cls: "column-todo"  },
+  { id: "todo", label: "To do", cls: "column-todo" },
   { id: "inprogress", label: "In progress", cls: "column-inprog" },
-  { id: "done",       label: "Done",        cls: "column-done"  },
+  { id: "done", label: "Done", cls: "column-done" },
 ]
 
 // ── helpers ─────────────────────────────────────────────────────────────────
@@ -72,19 +95,36 @@ function useToasts() {
 
 function ProjectDetails() {
   const { id } = useParams()
-  const [tasks, setTasks]         = useState<Task[]>([])
-  const [title, setTitle]         = useState("")
-  const [due, setDue]             = useState("")
-  const [priority, setPriority]   = useState<Priority>("medium")
-  const [assignee, setAssignee]   = useState("")
-  const [users, setUsers]   = useState<User[]>([])
-  const [search, setSearch]       = useState("")
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [title, setTitle] = useState("")
+  const [due, setDue] = useState("")
+  const [priority, setPriority] = useState<Priority>("medium")
+  const [assignee, setAssignee] = useState("")
+  const [users, setUsers] = useState<User[]>([])
+  const [search, setSearch] = useState("")
   const [filterPriority, setFilterPriority] = useState("")
   const [filterAssignee, setFilterAssignee] = useState("")
   const [confirmTask, setConfirmTask] = useState<Task | null>(null)
-  const { toasts, addToast }      = useToasts()
+  const [showChat, setShowChat] = useState(false)
+  const { toasts, addToast } = useToasts()
 
   useEffect(() => { fetchTasks(); fetchUsers() }, [])
+
+  const token = localStorage.getItem("token");
+  const user = token ? jwtDecode<DecodedToken>(token) : null;
+
+  const isAdmin = user?.role === "admin";
+
+  const canComment = (task: Task) => {
+    if (!user) return false;
+
+    return (
+      user.role === "admin" ||
+      task.assignee?._id === user.userId
+    );
+  };
+
+
 
   const fetchTasks = async () => {
     const token = localStorage.getItem("token")
@@ -126,6 +166,43 @@ function ProjectDetails() {
     addToast(`"${task.title.slice(0, 28)}…" deleted`, "toast-del")
   }
 
+  const handleAddComment = async (taskId: string, text: string) => {
+    const token = localStorage.getItem("token");
+    await fetch(`http://localhost:5000/tasks/${taskId}/comment`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ text })
+    });
+    fetchTasks();
+  };
+
+  const handleEditComment = async (taskId: string, commentId: string, text: string) => {
+    const token = localStorage.getItem("token");
+    await fetch(`http://localhost:5000/tasks/${taskId}/comment/${commentId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ text })
+    });
+    fetchTasks();
+  };
+
+  const handleDeleteComment = async (taskId: string, commentId: string) => {
+    const token = localStorage.getItem("token");
+    await fetch(`http://localhost:5000/tasks/${taskId}/comment/${commentId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    fetchTasks();
+  };
+
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return
     const newStatus = result.destination.droppableId as Task["status"]
@@ -150,18 +227,23 @@ function ProjectDetails() {
   const visible = tasks.filter(t => {
     if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
     if (filterPriority && t.priority !== filterPriority) return false
-    if (filterAssignee && t.assignee !== filterAssignee) return false
+    if (filterAssignee && t.assignee?._id !== filterAssignee) return false
     return true
   })
 
   const byStatus = (s: Task["status"]) => visible.filter(t => t.status === s)
-  const total     = tasks.length
+  const total = tasks.length
   const doneCount = tasks.filter(t => t.status === "done").length
-  const pct       = total ? Math.round((doneCount / total) * 100) : 0
+  const pct = total ? Math.round((doneCount / total) * 100) : 0
 
   // unique assignees for filter dropdown
-  const assignees = Array.from(new Set(tasks.map(t => t.assignee).filter(Boolean))) as string[]
-
+  const assignees = Array.from(
+    new Map(
+      tasks
+        .filter(t => t.assignee)
+        .map(t => [t.assignee!._id, t.assignee])
+    ).values()
+  )
   return (
     <Layout>
       <div className="kanban-page">
@@ -183,6 +265,31 @@ function ProjectDetails() {
               <span className="stat-pill">{doneCount}/{total} done</span>
             </div>
           )}
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <button
+              className="chat-toggle-btn"
+              onClick={() => setShowChat(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 14px",
+                borderRadius: "6px",
+                border: "1px solid var(--border)",
+                background: "var(--surface)",
+                color: "var(--text-primary)",
+                cursor: "pointer",
+                fontSize: "13px",
+                fontWeight: 500
+              }}
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+                <path d="M4 8h8M4 5h5M4 11h3" />
+                <rect x="2" y="2" width="12" height="12" rx="2" />
+              </svg>
+              Project Chat
+            </button>
+          </div>
         </div>
 
         {/* ── Progress ── */}
@@ -224,7 +331,11 @@ function ProjectDetails() {
           <div className="sel-wrap">
             <select value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
               <option value="">All members</option>
-              {assignees.map(a => <option key={a} value={a}>{a}</option>)}
+              {assignees.map(a => (
+                <option key={a._id} value={a._id}>
+                  {a.name}
+                </option>
+              ))}
             </select>
             <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M2 4l4 4 4-4" />
@@ -233,52 +344,54 @@ function ProjectDetails() {
         </div>
 
         {/* ── Add Task ── */}
-        <div className="task-create">
-          <input
-            type="text"
-            placeholder="What needs to be done?"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && createTask()}
-          />
-          <input
-            type="date"
-            value={due}
-            onChange={e => setDue(e.target.value)}
-          />
-          <div className="sel-wrap">
-            <select value={priority} onChange={e => setPriority(e.target.value as Priority)}>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="low">Low</option>
+        {isAdmin &&
+          <div className="task-create">
+            <input
+              type="text"
+              placeholder="What needs to be done?"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && createTask()}
+            />
+            <input
+              type="date"
+              value={due}
+              onChange={e => setDue(e.target.value)}
+            />
+            <div className="sel-wrap">
+              <select value={priority} onChange={e => setPriority(e.target.value as Priority)}>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="low">Low</option>
+              </select>
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M2 4l4 4 4-4" />
+              </svg>
+            </div>
+            <select
+              value={assignee}
+              onChange={e => setAssignee(e.target.value)}
+            >
+              <option value="">Assign to</option>
+              {users.length === 0 ? (
+                <option disabled>Loading...</option>
+              ) : (
+                users.map(user => (
+                  <option key={user._id} value={user._id}>
+                    {user.name}
+                  </option>
+                ))
+              )}
             </select>
-            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M2 4l4 4 4-4" />
-            </svg>
+            <button
+              className="task-add-btn"
+              onClick={createTask}
+              disabled={!title.trim()}
+            >
+              + Add task
+            </button>
           </div>
-          <select
-            value={assignee}
-            onChange={e => setAssignee(e.target.value)}
-          >
-            <option value="">Assign to</option>
-            {users.length === 0 ? (
-              <option disabled>Loading...</option>
-            ) : (
-              users.map(user => (
-                <option key={user._id} value={user._id}>
-                  {user.name}
-                </option>
-              ))
-            )}
-          </select>
-          <button
-            className="task-add-btn"
-            onClick={createTask}
-            disabled={!title.trim()}
-          >
-            + Add task
-          </button>
-        </div>
+        }
 
         {/* ── Board ── */}
         <DragDropContext onDragEnd={handleDragEnd}>
@@ -330,7 +443,7 @@ function ProjectDetails() {
                                 </div>
 
                                 {/* Footer row */}
-                                <div className="card-footer">
+                                <div className="card-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                   <div className="card-footer-left">
                                     <span className={`badge badge-${task.priority}`}>
                                       {task.priority}
@@ -345,11 +458,23 @@ function ProjectDetails() {
                                       </span>
                                     )}
                                   </div>
-                                  {task.assignee && (
-                                    <span className="avatar">
-                                      {task.assignee.slice(0, 2).toUpperCase()}
-                                    </span>
-                                  )}
+
+                                  <div className="card-footer-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <CommentPopover
+                                      taskId={task._id}
+                                      comments={task.comments ?? []}
+                                      currentUserName={user?.name ?? null}
+                                      canComment={canComment(task)}
+                                      onAddComment={(text) => handleAddComment(task._id, text)}
+                                      onEditComment={(commentId, text) => handleEditComment(task._id, commentId, text)}
+                                      onDeleteComment={(commentId) => handleDeleteComment(task._id, commentId)}
+                                    />
+                                    {task?.assignee && (
+                                      <span className="avatar">
+                                        {task.assignee.name.slice(0, 2).toUpperCase()}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -395,6 +520,15 @@ function ProjectDetails() {
           ))}
         </div>
 
+        {/* ── Chat Drawer ── */}
+        {showChat && id && (
+          <ProjectChat
+            projectId={id}
+            currentUserId={user?.userId ?? null}
+            currentUserName={user?.name ?? null}
+            onClose={() => setShowChat(false)}
+          />
+        )}
       </div>
     </Layout>
   )
