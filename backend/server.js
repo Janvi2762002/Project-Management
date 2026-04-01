@@ -10,6 +10,7 @@ import projectRoutes from "./src/routes/projectRoutes.js";
 import taskRoutes from "./src/routes/taskRoutes.js";
 import chatRoutes from "./src/routes/chatRoutes.js";
 import notificationRoutes from "./src/routes/notificationRoutes.js";
+import chatbotRoutes from "./src/routes/chatbotRoutes.js";
 import Message from "./src/models/message.js";
 import { initNotifications, registerUserSocket, unregisterUserSocket } from "./src/utils/notifications.js";
 
@@ -38,6 +39,7 @@ app.use("/tasks", taskRoutes);
 app.use("/projects", projectRoutes);
 app.use("/chat", chatRoutes);
 app.use("/notifications", notificationRoutes);
+app.use("/chatbot", chatbotRoutes);
 
 // Socket.io logic
 io.on("connection", (socket) => {

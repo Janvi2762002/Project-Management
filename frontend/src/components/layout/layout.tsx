@@ -3,6 +3,7 @@ import Sidebar from "./sidebar"
 import Topbar from "./topbar"
 import { socket } from "../../socketService"
 import { jwtDecode } from "jwt-decode"
+import Chatbot from "../chatbot/Chatbot"
 
 type Props = {
   children: ReactNode
@@ -39,19 +40,14 @@ function Layout({ children }: Props) {
 
   return (
     <div className="layout">
-
       <Sidebar />
-
       <div className="main">
-
         <Topbar />
-
         <div className="content">
           {children}
         </div>
-
+        <Chatbot />
       </div>
-
     </div>
   )
 }

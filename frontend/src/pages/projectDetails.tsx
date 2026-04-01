@@ -111,6 +111,7 @@ function ProjectDetails() {
   const [confirmTask, setConfirmTask] = useState<Task | null>(null)
   const [showChat, setShowChat] = useState(false)
   const { toasts, addToast } = useToasts()
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { fetchTasks(); fetchUsers() }, [])
 
@@ -359,11 +360,12 @@ function ProjectDetails() {
             />
             <div className="datetime-wrap">
               <input
+                ref={inputRef}
                 type="date"
                 value={due}
                 onChange={e => setDue(e.target.value)}
               />
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <svg onClick={() => inputRef.current?.showPicker()} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <rect x="2" y="3" width="12" height="11" rx="1.5" />
                 <path d="M5 1v4M11 1v4M2 7h12M10 11l2 2m0-2l-2 2" />
               </svg>

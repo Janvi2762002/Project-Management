@@ -86,3 +86,15 @@ export const getUsers= async () => {
     headers: { Authorization: `Bearer ${token}` }
   });
 };
+
+export const chatbotQuery = async (query: string, projectId?: string | null) => {
+  const token = localStorage.getItem("token");
+  return apiFetch(`${API_URL}/chatbot/query`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ query, projectId: projectId || null })
+  });
+};
