@@ -9,7 +9,9 @@ import userRoutes from "./src/routes/userRoutes.js";
 import projectRoutes from "./src/routes/projectRoutes.js";
 import taskRoutes from "./src/routes/taskRoutes.js";
 import chatRoutes from "./src/routes/chatRoutes.js";
+import notificationRoutes from "./src/routes/notificationRoutes.js";
 import Message from "./src/models/message.js";
+import { initNotifications, registerUserSocket, unregisterUserSocket } from "./src/utils/notifications.js";
 
 const app = express();
 const server = createServer(app);
@@ -20,6 +22,9 @@ const io = new Server(server, {
     methods: ["GET", "POST"]
   }
 });
+
+// Initialize notification system
+initNotifications(io);
 
 app.use(cors());
 app.use(express.json());
@@ -32,10 +37,17 @@ app.use("/users", userRoutes);
 app.use("/tasks", taskRoutes);
 app.use("/projects", projectRoutes);
 app.use("/chat", chatRoutes);
+app.use("/notifications", notificationRoutes);
 
 // Socket.io logic
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
+
+  // Register user for real-time notifications
+  socket.on("register_user", (userId) => {
+    registerUserSocket(userId, socket.id);
+    console.log(`User ${userId} registered with socket ${socket.id}`);
+  });
 
   socket.on("join_project", (projectId) => {
     socket.join(projectId);
@@ -65,6 +77,9 @@ io.on("connection", (socket) => {
 
       // Broadcast to all users in the room
       io.to(data.project).emit("receive_message", broadcastData);
+
+      // Handle mentions
+      await handleMentions(data.text, data.user, null, data.project, data.userName);
     } catch (err) {
       console.error("Error saving message:", err);
     }
@@ -86,6 +101,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    unregisterUserSocket(socket.id);
     console.log("User disconnected:", socket.id);
   });
 });

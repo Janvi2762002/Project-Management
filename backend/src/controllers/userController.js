@@ -40,8 +40,15 @@ export const createUser = async (req, res) => {
 
     await newUser.save();
 
+    const token = jwt.sign(
+      { userId: newUser._id, role: newUser.role, name: newUser.name },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
     res.status(201).json({
       message: "User created successfully",
+      token,
       user: {
         id: newUser._id,
         name: newUser.name,
@@ -114,8 +121,15 @@ export const registerUser = async (req, res) => {
 
     await newUser.save();
 
+    const token = jwt.sign(
+      { userId: newUser._id, role: newUser.role, name: newUser.name },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
     res.status(201).json({
       message: "User created successfully",
+      token,
       user: newUser
     });
 

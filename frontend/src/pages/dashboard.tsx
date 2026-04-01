@@ -191,8 +191,8 @@ function Dashboard() {
   // ── Derived stats ────────────────────────────────────────────────────────────
 
   const total = tasks.length
-  const completed = tasks.filter(t => t.status === "done").length
-  const overdueTasks = tasks.filter(isOverdue)
+  const completed = tasks?.filter(t => t.status === "done").length
+  const overdueTasks = tasks?.filter(isOverdue)
   const completionPct = total ? Math.round((completed / total) * 100) : 0
 
   const recentProjects = [...projects]
@@ -201,8 +201,8 @@ function Dashboard() {
     )
     .slice(0, 5)
 
-  const byStatus = (s: Task["status"]) => tasks.filter(t => t.status === s).length
-  const byPriority = (p: Task["priority"]) => tasks.filter(t => t.priority === p).length
+  const byStatus = (s: Task["status"]) => tasks?.filter(t => t.status === s).length
+  const byPriority = (p: Task["priority"]) => tasks?.filter(t => t.priority === p).length
 
   const maxStatus = Math.max(byStatus("todo"), byStatus("inprogress"), byStatus("done"), 1)
   const maxPriority = Math.max(byPriority("high"), byPriority("medium"), byPriority("low"), 1)
@@ -305,7 +305,7 @@ function Dashboard() {
               </div>
             ) : (
               recentProjects.map((project, i) => {
-                const pt = tasks.filter(t => t.project?._id?.toString() === project._id.toString());
+                const pt = tasks?.filter(t => t.project?._id?.toString() === project._id.toString());
                 const done = pt.filter(t => t.status === "done").length
                 const progress = pt.length ? Math.round((done / pt.length) * 100) : 0
 

@@ -73,12 +73,16 @@
 import { useState } from "react"
 import { loginUser } from "../api"
 import { useNavigate } from "react-router-dom"
+interface Props {
+  onSwitchToRegister: () => void
+}
 
-function Login() {
+function Login({ onSwitchToRegister }: Props) {
   const [email, setEmail]       = useState("")
   const [password, setPassword] = useState("")
-  const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState("")
+  const [success, setSuccess]   = useState("")
+  const [loading, setLoading]   = useState(false)
 
   const navigate = useNavigate()
 
@@ -86,15 +90,20 @@ function Login() {
     try {
       setLoading(true)
       setError("")
+      setSuccess("")
 
       const data = await loginUser({ email, password })
 
       if (data.token) {
+        setSuccess(data.message || "Login successful!")
         localStorage.setItem("token", data.token)
-        localStorage.setItem("role",data.role)
-        navigate("/projects")
+        localStorage.setItem("role", data.role)
+        
+        setTimeout(() => {
+          navigate("/dashboard")
+        }, 1000)
       } else {
-        setError("Invalid credentials")
+        setError(data.message || "Invalid credentials")
       }
     } catch {
       setError("Login failed")
@@ -109,6 +118,7 @@ function Login() {
       <p className="auth-subheading">Sign in to your account to continue.</p>
 
       {error && <div className="auth-error">{error}</div>}
+      {success && <div className="auth-success anim-fade-in">{success}</div>}
 
       <div className="auth-field">
         <label>Email</label>
@@ -140,6 +150,11 @@ function Login() {
       >
         {loading ? "Signing in…" : "Sign in"}
       </button>
+
+      <div className="auth-footer">
+        Don't have an account?{" "}
+        <button onClick={onSwitchToRegister}>Sign up</button>
+      </div>
     </>
   )
 }

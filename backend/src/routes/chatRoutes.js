@@ -1,9 +1,9 @@
 import express from "express";
 import { getProjectMessages } from "../controllers/chatController.js";
-import authMiddleware from "../middleware/auth.js";
+import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.get("/:projectId", authMiddleware, getProjectMessages);
+router.get("/:projectId", auth, getProjectMessages);
 
 export default router;

@@ -1,5 +1,17 @@
-
 const API_URL = "http://localhost:5000";
+
+// Centralized fetch with 401 handling
+const apiFetch = async (url: string, options: RequestInit = {}) => {
+  const res = await fetch(url, options);
+  
+  if (res.status === 401) {
+    localStorage.removeItem("token");
+    window.location.href = "/?expired=true";
+    throw new Error("Session expired");
+  }
+
+  return res.json();
+};
 
 type loginData = {
   email: string;
@@ -14,39 +26,26 @@ type registerData = {
 };
 
 export const loginUser = async (data: loginData) => {
-  const res = await fetch(`${API_URL}/users/login`, {
+  return apiFetch(`${API_URL}/users/login`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
   });
-
-  return res.json();
 };
 
 export const registerUser = async (data: registerData) => {
-  const res = await fetch(`${API_URL}/users/register`, {
+  return apiFetch(`${API_URL}/users/register`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
   });
-
-  return res.json();
 };
 
 export const getProjects = async () => {
   const token = localStorage.getItem("token");
-
-  const res = await fetch(`${API_URL}/projects`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+  return apiFetch(`${API_URL}/projects`, {
+    headers: { Authorization: `Bearer ${token}` }
   });
-
-  return res.json();
 };
 
 export const createProject = async (data: {
@@ -54,8 +53,7 @@ export const createProject = async (data: {
   description: string
 }) => {
   const token = localStorage.getItem("token");
-
-  const res = await fetch(`${API_URL}/projects`, {
+  return apiFetch(`${API_URL}/projects`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -63,45 +61,28 @@ export const createProject = async (data: {
     },
     body: JSON.stringify(data)
   });
-
-  return res.json();
 };
 
 export const deleteProject = async (id: string) => {
   const token = localStorage.getItem("token");
-
-  const res = await fetch(`${API_URL}/projects/${id}`, {
+  return apiFetch(`${API_URL}/projects/${id}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+    headers: { Authorization: `Bearer ${token}` }
   });
-
-  return res.json();
 };
 
 //tasks
 
 export const getAllTasks = async () => {
   const token = localStorage.getItem("token");
-
-  const res = await fetch(`${API_URL}/tasks`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+  return apiFetch(`${API_URL}/tasks`, {
+    headers: { Authorization: `Bearer ${token}` }
   });
-
-  return res.json();
 };
 
 export const getUsers= async () => {
   const token = localStorage.getItem("token");
-
-  const res = await fetch(`${API_URL}/users`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+  return apiFetch(`${API_URL}/users`, {
+    headers: { Authorization: `Bearer ${token}` }
   });
-
-  return res.json();
 };

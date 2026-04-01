@@ -1,5 +1,6 @@
 // const Task = require("../models/task");
 import Task from "../models/task.js";
+import { createNotification, handleMentions } from "../utils/notifications.js";
 // import Project from "../models/project.js";
 
 export const getAllTasks = async (req, res) => {
@@ -88,6 +89,17 @@ export const createTask = async (req, res) => {
 
     const savedTask = await task.save();
 
+    // Notify assignee
+    if (savedTask.assignee) {
+      await createNotification({
+        userId: savedTask.assignee,
+        type: "task_assigned",
+        message: `You have been assigned a new task: "${savedTask.title}"`,
+        taskId: savedTask._id,
+        projectId: savedTask.project
+      });
+    }
+
     res.status(201).json(savedTask);
 
   } catch (error) {
@@ -125,6 +137,8 @@ export const updateTaskStatus = async (req, res) => {
 export const updateTask = async (req, res) => {
   try {
     const { title, description, priority, due, assignee, status, subtasks } = req.body
+    const oldTask = await Task.findById(req.params.id);
+    const oldAssignee = oldTask?.assignee;
 
     const task = await Task.findByIdAndUpdate(
       req.params.id,
@@ -133,6 +147,17 @@ export const updateTask = async (req, res) => {
     )
 
     if (!task) return res.status(404).json({ message: "Task not found" })
+
+    // Notify if assignee changed
+    if (assignee && assignee !== oldAssignee?.toString()) {
+      await createNotification({
+        userId: assignee,
+        type: "task_assigned",
+        message: `You have been assigned to task: "${task.title}"`,
+        taskId: task._id,
+        projectId: task.project
+      });
+    }
 
     res.json(task)
   } catch (err) {
@@ -174,6 +199,20 @@ export const addComment = async (req, res) => {
     task.comments.push(comment);
 
     await task.save();
+
+    // 1. Notify assignee (if not the one who commented)
+    if (task.assignee && task.assignee.toString() !== userId) {
+      await createNotification({
+        userId: task.assignee,
+        type: "comment_added",
+        message: `${req.user.name || "A user"} commented on your task: "${task.title}"`,
+        taskId: task._id,
+        projectId: task.project
+      });
+    }
+
+    // 2. Handle mentions
+    await handleMentions(text, userId, task._id, task.project, req.user.name || "A user");
 
     const populatedTask = await Task.findById(id).populate("assignee", "name").populate("comments.user", "name");
 

@@ -64,8 +64,12 @@ function today() {
 
 function fmtDate(d?: string) {
   if (!d) return null
-  const dt = new Date(d + "T00:00:00")
-  return dt.toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+  const dt = new Date(d)
+  if (isNaN(dt.getTime())) return null
+
+  const dateStr = dt.toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+  const timeStr = dt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+  return `${dateStr} • ${timeStr}`
 }
 
 function isOverdue(due?: string, status?: string) {
@@ -140,7 +144,7 @@ function ProjectDetails() {
   }
 
   const createTask = async () => {
-    if (!title.trim()) return
+    if (!title.trim() || !due || !priority || !assignee) return
     const token = localStorage.getItem("token")
     await fetch(`http://localhost:5000/tasks/${id}`, {
       method: "POST",
@@ -224,7 +228,7 @@ function ProjectDetails() {
 
   // ── Filtering ──────────────────────────────────────────────────────────────
 
-  const visible = tasks.filter(t => {
+  const visible = tasks?.filter(t => {
     if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
     if (filterPriority && t.priority !== filterPriority) return false
     if (filterAssignee && t.assignee?._id !== filterAssignee) return false
@@ -233,7 +237,7 @@ function ProjectDetails() {
 
   const byStatus = (s: Task["status"]) => visible.filter(t => t.status === s)
   const total = tasks.length
-  const doneCount = tasks.filter(t => t.status === "done").length
+  const doneCount = tasks?.filter(t => t.status === "done").length
   const pct = total ? Math.round((doneCount / total) * 100) : 0
 
   // unique assignees for filter dropdown
@@ -353,11 +357,17 @@ function ProjectDetails() {
               onChange={e => setTitle(e.target.value)}
               onKeyDown={e => e.key === "Enter" && createTask()}
             />
-            <input
-              type="date"
-              value={due}
-              onChange={e => setDue(e.target.value)}
-            />
+            <div className="datetime-wrap">
+              <input
+                type="date"
+                value={due}
+                onChange={e => setDue(e.target.value)}
+              />
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="2" y="3" width="12" height="11" rx="1.5" />
+                <path d="M5 1v4M11 1v4M2 7h12M10 11l2 2m0-2l-2 2" />
+              </svg>
+            </div>
             <div className="sel-wrap">
               <select value={priority} onChange={e => setPriority(e.target.value as Priority)}>
                 <option value="medium">Medium</option>
@@ -368,25 +378,30 @@ function ProjectDetails() {
                 <path d="M2 4l4 4 4-4" />
               </svg>
             </div>
-            <select
-              value={assignee}
-              onChange={e => setAssignee(e.target.value)}
-            >
-              <option value="">Assign to</option>
-              {users.length === 0 ? (
-                <option disabled>Loading...</option>
-              ) : (
-                users.map(user => (
-                  <option key={user._id} value={user._id}>
-                    {user.name}
-                  </option>
-                ))
-              )}
-            </select>
+            <div className="sel-wrap">
+              <select
+                value={assignee}
+                onChange={e => setAssignee(e.target.value)}
+              >
+                <option value="">Assign to</option>
+                {users.length === 0 ? (
+                  <option disabled>Loading...</option>
+                ) : (
+                  users.map(user => (
+                    <option key={user._id} value={user._id}>
+                      {user.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M2 4l4 4 4-4" />
+              </svg>
+            </div>
             <button
               className="task-add-btn"
               onClick={createTask}
-              disabled={!title.trim()}
+              disabled={!title.trim() || !due || !priority || !assignee}
             >
               + Add task
             </button>
