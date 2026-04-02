@@ -1,6 +1,7 @@
 import express from "express";
 import * as taskController from "../controllers/taskController.js";
 import auth from "../middleware/auth.js";
+import upload from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ router.put("/:id/status", auth, taskController.updateTaskStatus);
 router.put("/:id", auth, taskController.updateTask);
 
 //comments
-router.post("/:id/comment", auth, taskController.addComment);
+router.post("/:id/comment", auth, upload.array("attachments"), taskController.addComment);
 router.put("/:id/comment/:commentId", auth, taskController.editComment);
 router.delete("/:id/comment/:commentId", auth, taskController.deleteComment);
 

@@ -44,7 +44,7 @@ const taskSchema = new mongoose.Schema(
       {
         text: {
           type: String,
-          required: true,
+          required: false,
         },
         user: {
           type: mongoose.Schema.Types.ObjectId,
@@ -55,6 +55,14 @@ const taskSchema = new mongoose.Schema(
           type: Date,
           default: Date.now,
         },
+        attachments: [
+          {
+            name: String,
+            url: String,
+            fileType: String,
+            size: Number,
+          }
+        ],
       },
     ],
     subtasks: [

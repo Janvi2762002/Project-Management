@@ -1,5 +1,10 @@
 import { useEffect, useState, useRef } from "react"
 import { io, Socket } from "socket.io-client"
+import { Smile, Paperclip, File, Download } from "lucide-react"
+import { AnimatePresence } from "framer-motion"
+import EmojiPicker from "../common/EmojiPicker"
+import FilePreview from "../common/FilePreview"
+import { uploadChatFiles } from "../../api"
 
 
 type Message = {
@@ -10,6 +15,12 @@ type Message = {
     _id: string
     name: string
   }
+  attachments?: {
+    name: string
+    url: string
+    fileType: string
+    size: number
+  }[]
   createdAt: string
 }
 
@@ -24,9 +35,14 @@ function ProjectChat({ projectId, currentUserId, currentUserName, onClose }: Pro
   const [messages, setMessages] = useState<Message[]>([])
   const [text, setText] = useState("")
   const [isConnected, setIsConnected] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [files, setFiles] = useState<File[]>([])
+  const [isUploading, setIsUploading] = useState(false)
   
   const socketRef = useRef<Socket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Format timestamp
   const formatTime = (dateStr: string) => {
@@ -36,6 +52,15 @@ function ProjectChat({ projectId, currentUserId, currentUserName, onClose }: Pro
     } catch {
       return ""
     }
+  }
+
+  // Filesize formatter
+  const formatSize = (bytes: number) => {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
   }
 
   // Helper to get initials
@@ -94,19 +119,50 @@ function ProjectChat({ projectId, currentUserId, currentUserName, onClose }: Pro
     }
   }, [messages])
 
-  const handleSend = () => {
-    if (!text.trim() || !currentUserId || !currentUserName) return
+  const handleEmojiSelect = (emoji: string) => {
+    const cursor = textareaRef.current?.selectionStart || 0
+    const newText = text.slice(0, cursor) + emoji + text.slice(cursor)
+    setText(newText)
+    setShowEmojiPicker(false)
+    textareaRef.current?.focus()
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles(prev => [...prev, ...Array.from(e.target.files!)])
+    }
+  }
+
+  const handleSend = async () => {
+    if ((!text.trim() && files.length === 0) || !currentUserId || !currentUserName || isUploading) return
+
+    let attachments = []
+    if (files.length > 0) {
+      setIsUploading(true)
+      try {
+        const formData = new FormData()
+        files.forEach(f => formData.append("attachments", f))
+        attachments = await uploadChatFiles(formData)
+      } catch (err) {
+        console.error("Upload failed", err)
+        setIsUploading(false)
+        return
+      }
+    }
 
     const newMsg = {
       project: projectId,
       user: currentUserId,
       userName: currentUserName,
-      text: text.trim()
+      text: text.trim(),
+      attachments
     }
 
     // Send to socket (Backend will save and broadcast)
     socketRef.current?.emit("send_message", newMsg)
     setText("")
+    setFiles([])
+    setIsUploading(false)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -130,6 +186,7 @@ function ProjectChat({ projectId, currentUserId, currentUserName, onClose }: Pro
               ) : (
                 <><span className="status-dot offline"></span> Disconnected</>
               )}
+              {isUploading && <span style={{ marginLeft: '10px', fontSize: '11px', color: '#6366f1' }}>Uploading files...</span>}
             </span>
           </div>
           <button className="chat-close-btn" onClick={onClose}>
@@ -168,7 +225,37 @@ function ProjectChat({ projectId, currentUserId, currentUserName, onClose }: Pro
                     </div>
                   )}
                   <div className="chat-bubble">
-                    {msg.text}
+                    <div className="chat-text">{msg.text}</div>
+                    
+                    {msg.attachments && msg.attachments.length > 0 && (
+                      <div className="chat-attachments">
+                        {msg.attachments.map((file, idx) => (
+                          <div key={idx} className="chat-file-card">
+                            <div className="file-icon-wrap">
+                              {file.fileType.startsWith('image/') ? (
+                                <img src={`http://localhost:5000${file.url}`} alt={file.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
+                              ) : (
+                                <File size={18} />
+                              )}
+                            </div>
+                            <div className="file-info">
+                              <span className="file-name">{file.name}</span>
+                              <span className="file-size">{formatSize(file.size)}</span>
+                            </div>
+                            <a 
+                              href={`http://localhost:5000${file.url}`} 
+                              download={file.name} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              className="file-dl-btn"
+                            >
+                              <Download size={14} />
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {isConsecutive && (
                        <span className="chat-time-mini">{formatTime(msg.createdAt)}</span>
                     )}
@@ -181,8 +268,26 @@ function ProjectChat({ projectId, currentUserId, currentUserName, onClose }: Pro
         </div>
 
         <div className="chat-footer">
+          <input 
+            type="file" 
+            multiple 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            style={{ display: 'none' }} 
+          />
+          <FilePreview files={files} onRemove={(idx) => setFiles(prev => prev.filter((_, i) => i !== idx))} />
+          
           <div className="chat-input-wrapper">
+            <button 
+              type="button" 
+              onClick={() => fileInputRef.current?.click()}
+              className="chat-action-btn"
+            >
+              <Paperclip size={18} />
+            </button>
+
             <textarea
+              ref={textareaRef}
               className="chat-input"
               placeholder="Message your team..."
               value={text}
@@ -190,16 +295,36 @@ function ProjectChat({ projectId, currentUserId, currentUserName, onClose }: Pro
               onKeyDown={handleKeyDown}
               rows={1}
             />
-            <button 
-              className="chat-send-btn" 
-              onClick={handleSend}
-              disabled={!text.trim() || !isConnected}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </button>
+
+            <div className="chat-input-right">
+              <button 
+                type="button" 
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="chat-action-btn"
+              >
+                <Smile size={18} />
+              </button>
+              
+              <AnimatePresence>
+                {showEmojiPicker && (
+                  <EmojiPicker 
+                    onSelect={handleEmojiSelect} 
+                    onClose={() => setShowEmojiPicker(false)} 
+                  />
+                )}
+              </AnimatePresence>
+
+              <button 
+                className="chat-send-btn" 
+                onClick={handleSend}
+                disabled={(!text.trim() && files.length === 0) || !isConnected || isUploading}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>

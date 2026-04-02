@@ -171,15 +171,22 @@ function ProjectDetails() {
     addToast(`"${task.title.slice(0, 28)}…" deleted`, "toast-del")
   }
 
-  const handleAddComment = async (taskId: string, text: string) => {
+  const handleAddComment = async (taskId: string, text: string, files: File[]) => {
     const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append("text", text);
+    if (files) {
+      files.forEach(file => {
+        formData.append("attachments", file);
+      });
+    }
+
     await fetch(`http://localhost:5000/tasks/${taskId}/comment`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({ text })
+      body: formData
     });
     fetchTasks();
   };
@@ -482,7 +489,7 @@ function ProjectDetails() {
                                       comments={task.comments ?? []}
                                       currentUserName={user?.name ?? null}
                                       canComment={canComment(task)}
-                                      onAddComment={(text) => handleAddComment(task._id, text)}
+                                      onAddComment={(text, files) => handleAddComment(task._id, text, files)}
                                       onEditComment={(commentId, text) => handleEditComment(task._id, commentId, text)}
                                       onDeleteComment={(commentId) => handleDeleteComment(task._id, commentId)}
                                     />

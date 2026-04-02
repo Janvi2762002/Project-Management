@@ -172,7 +172,7 @@ export const addComment = async (req, res) => {
     const { id } = req.params; // taskId
     const userId = req.user.userId;
     const role = req.user.role;
-    const { text } = req.body;
+    const text = req.body.text || "";
 
     const task = await Task.findById(id);
 
@@ -188,11 +188,20 @@ export const addComment = async (req, res) => {
       return res.status(403).json({ message: "Not allowed to comment" });
     }
 
+    // ✅ Process attachments
+    const attachments = req.files ? req.files.map(file => ({
+      name: file.originalname,
+      url: `/uploads/${file.filename}`,
+      fileType: file.mimetype,
+      size: file.size
+    })) : [];
+
     // ✅ Add comment
     const comment = {
       text,
       user: userId,
-      createdAt: new Date()
+      createdAt: new Date(),
+      attachments
     };
 
     task.comments = task.comments || [];

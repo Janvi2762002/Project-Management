@@ -29,6 +29,7 @@ initNotifications(io);
 
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static("uploads"));
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected 🚀"))
@@ -62,7 +63,8 @@ io.on("connection", (socket) => {
       const newMessage = await Message.create({
         project: data.project,
         user: data.user,
-        text: data.text
+        text: data.text,
+        attachments: data.attachments || []
       });
 
       // Prepare broadcast data
@@ -74,6 +76,7 @@ io.on("connection", (socket) => {
           name: data.userName
         },
         text: newMessage.text,
+        attachments: newMessage.attachments,
         createdAt: newMessage.createdAt
       };
 

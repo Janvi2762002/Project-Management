@@ -35,3 +35,22 @@ export const getProjectMessages = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch messages" });
   }
 };
+
+export const uploadAttachments = async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
+    }
+
+    const attachments = req.files.map(file => ({
+      name: file.originalname,
+      url: `/uploads/${file.filename}`,
+      fileType: file.mimetype,
+      size: file.size
+    }));
+
+    res.json(attachments);
+  } catch (error) {
+    res.status(500).json({ message: "Upload failed" });
+  }
+};

@@ -15,7 +15,7 @@ type Props = {
   comments: Comment[]
   currentUserName: string | null
   canComment: boolean
-  onAddComment: (text: string) => void
+  onAddComment: (text: string, files: File[]) => void
   onDeleteComment?: (commentId: string) => void
   onEditComment?: (commentId: string, newText: string) => void
 }
@@ -116,8 +116,8 @@ function CommentPopover({
 
               {canComment && (
                 <CommentInput
-                  onSubmit={(text) => {
-                    onAddComment(text)
+                  onSubmit={(text, files) => {
+                    onAddComment(text, files)
                   }}
                   onTyping={handleTyping}
                   typingUser={typingUser}

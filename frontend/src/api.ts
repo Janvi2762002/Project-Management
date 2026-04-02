@@ -98,3 +98,25 @@ export const chatbotQuery = async (query: string, projectId?: string | null) => 
     body: JSON.stringify({ query, projectId: projectId || null })
   });
 };
+
+export const createComment = async (taskId: string, formData: FormData) => {
+  const token = localStorage.getItem("token");
+  return apiFetch(`${API_URL}/tasks/${taskId}/comment`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: formData
+  });
+};
+
+export const uploadChatFiles = async (formData: FormData) => {
+  const token = localStorage.getItem("token");
+  return apiFetch(`${API_URL}/chat/upload`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: formData
+  });
+};
